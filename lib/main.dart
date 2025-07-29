@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:nohaste/screens/home/widgets/home_app_bar.dart';
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_strings.dart';
 import 'screens/home/widgets/streak_counter.dart';
@@ -125,23 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(AppStrings.appName),
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          tooltip: 'Menu',
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_month_rounded),
-            onPressed: () {},
-            tooltip: 'Calendar',
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: HomeAppBar(scaffoldKey: _scaffoldKey),
       drawer: const AppDrawer(),
+
       body: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -157,81 +144,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 32),
 
-              // Motivation Card
-              _buildMotivationCard(),
-
               const SizedBox(height: 24),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMotivationCard() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.withOpacity(0.05), width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: const Icon(
-              Icons.emoji_events_rounded,
-              size: 48,
-              color: AppColors.success,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          const Text(
-            'Stay Strong!',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 12),
-
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
-              'Every day you resist makes you stronger. Keep going!',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: AppColors.textSecondary,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
       ),
     );
   }

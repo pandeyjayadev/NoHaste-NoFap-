@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nohaste/main.dart';
+import 'package:nohaste/screens/home/home_screen.dart' hide HomeScreen;
+import 'package:nohaste/screens/home/widgets/home_body.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MotivationalSection extends StatefulWidget {
@@ -120,7 +123,12 @@ class _MotivationalSectionState extends State<MotivationalSection> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF2D3748)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          },
         ),
         actions: [
           IconButton(

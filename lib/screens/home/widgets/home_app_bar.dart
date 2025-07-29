@@ -22,6 +22,20 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: const Text(AppStrings.appName, style: AppTextStyles.appBarTitle),
       centerTitle: true,
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.textPrimary,
+            size: 28,
+          ),
+          onPressed: () {
+            // Handle notification tap
+            // You can navigate to notifications screen or show a dialog
+            print('Notification tapped');
+          },
+        ),
+      ],
     );
   }
 

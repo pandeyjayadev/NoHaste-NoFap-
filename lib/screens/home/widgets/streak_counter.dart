@@ -137,6 +137,7 @@ class _StreakCounterState extends State<StreakCounter>
 
     if (date != null) {
       final time = await showTimePicker(
+        // ignore: use_build_context_synchronously
         context: context,
         initialTime: TimeOfDay.fromDateTime(_startDate ?? DateTime.now()),
       );
@@ -305,8 +306,6 @@ class _StreakCounterState extends State<StreakCounter>
             ),
             child: Column(
               children: [
-                const SizedBox(height: 20),
-
                 // Action Buttons
                 Row(
                   children: [

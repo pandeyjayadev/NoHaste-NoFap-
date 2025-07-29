@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:nohaste/core/constants/app_colors.dart';
 import 'package:nohaste/core/constants/app_strings.dart';
 import 'package:nohaste/screens/about/about_screen.dart';
+import 'package:nohaste/screens/emergency/MotivationaL_Screen.dart';
+import 'package:nohaste/screens/home/home_screen.dart';
+import 'package:nohaste/screens/journal/journal_screen.dart';
 import 'package:nohaste/screens/progress/Progress_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -25,7 +28,7 @@ class AppDrawer extends StatelessWidget {
                   onTap: () => Navigator.pop(context),
                 ),
                 _buildDrawerItem(
-                  icon: Icons.timeline,
+                  icon: Icons.history,
                   title: AppStrings.menuProgress,
                   onTap: () {
                     Navigator.push(
@@ -40,7 +43,12 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.book,
                   title: AppStrings.menuJournal,
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const JournalScreen(),
+                      ),
+                    );
                     // Navigate to Journal tab (index 2)
                   },
                 ),
@@ -48,14 +56,27 @@ class AppDrawer extends StatelessWidget {
                 _buildDrawerItem(
                   icon: Icons.lightbulb,
                   title: AppStrings.menuQuotes,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MotivationalSection(),
+                      ),
+                    );
+                    // Navigate to Journal tab (index 2)
+                  },
                 ),
                 _buildDrawerItem(
                   icon: Icons.warning,
                   title: AppStrings.menuEmergency,
                   onTap: () {
-                    Navigator.pop(context);
-                    // Navigate to Emergency tab (index 3)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ),
+                    );
+                    // Navigate to Journal tab (index 2)
                   },
                 ),
 
