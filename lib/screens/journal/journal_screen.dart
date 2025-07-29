@@ -1,230 +1,500 @@
+// screens/journal_screen.dart
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:nohaste/models/journal_entry.dart';
+import 'package:nohaste/screens/journal/add_edit_entry_screen.dart';
+import 'package:nohaste/services/journal_service.dart';
+// import 'add_edit_entry_screen.dart';
 
-class JournalScreen extends StatelessWidget {
+class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
+
+  @override
+  State<JournalScreen> createState() => _JournalScreenState();
+}
+ 
+class _JournalScreenState extends State<JournalScreen> {
+  final JournalService _journalService = JournalService();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<JournalEntry> _entries = [];
+  List<JournalEntry> _filteredEntries = [];
+  bool _isLoading = true;
+  MoodLevel? _selectedMoodFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntries();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadEntries() async {
+    setState(() => _isLoading = true);
+    _entries = await _journalService.getAllEntries();
+    _applyFilters();
+    setState(() => _isLoading = false);
+  }
+
+  void _onSearchChanged() {
+    _applyFilters();
+  }
+
+  void _applyFilters() {
+    var filtered = _entries;
+
+    // Apply search filter
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered.where((entry) {
+        return entry.title.toLowerCase().contains(query) ||
+            entry.content.toLowerCase().contains(query) ||
+            entry.triggers.any(
+              (trigger) => trigger.toLowerCase().contains(query),
+            ) ||
+            entry.customTriggers.any(
+              (trigger) => trigger.toLowerCase().contains(query),
+            );
+      }).toList();
+    }
+
+    // Apply mood filter
+    if (_selectedMoodFilter != null) {
+      filtered = filtered
+          .where((entry) => entry.mood == _selectedMoodFilter)
+          .toList();
+    }
+
+    setState(() => _filteredEntries = filtered);
+  }
+
+  Future<void> _deleteEntry(JournalEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Entry'),
+        content: const Text(
+          'Are you sure you want to delete this journal entry?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _journalService.deleteEntry(entry.id);
+      _loadEntries();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entry deleted successfully')),
+        );
+      }
+    }
+  }
+
+  Widget _buildMoodFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          FilterChip(
+            label: const Text('All'),
+            selected: _selectedMoodFilter == null,
+            onSelected: (selected) {
+              setState(() => _selectedMoodFilter = null);
+              _applyFilters();
+            },
+          ),
+          const SizedBox(width: 8),
+          ...MoodLevel.values.map((mood) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Color(mood.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(mood.label),
+                  ],
+                ),
+                selected: _selectedMoodFilter == mood,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedMoodFilter = selected ? mood : null;
+                  });
+                  _applyFilters();
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Journal'),
-        centerTitle: true,
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.insights),
+            onPressed: () => _showStatistics(),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 40), // Add top spacing
-            // Large Journal Icon with Animation
-            TweenAnimationBuilder(
-              duration: const Duration(seconds: 2),
-              tween: Tween<double>(begin: 0.8, end: 1.0),
-              builder: (context, double value, child) {
-                return Transform.scale(
-                  scale: value,
-                  child: Container(
-                    padding: const EdgeInsets.all(40),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.green.withOpacity(0.1),
-                      border: Border.all(
-                        color: Colors.green.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.edit_note,
-                      size: 120,
-                      color: Colors.green[600],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 40),
-
-            // Under Construction Title
-            Text(
-              'Under Construction',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.green[700],
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 16),
-
-            // Subtitle
-            Text(
-              'Personal Journal Feature',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 24),
-
-            // Description
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Icon(Icons.upcoming, size: 48, color: AppColors.primary),
-                  const SizedBox(height: 16),
-                  Text(
-                    'This feature will be available in the next release!',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'We\'re developing a personal journaling system.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textLight,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Coming Soon Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green[400]!, Colors.green[600]!],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search entries...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.schedule, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Coming Soon',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
             ),
+          ),
 
-            const SizedBox(height: 24),
+          // Mood Filter Chips
+          _buildMoodFilterChips(),
+          const SizedBox(height: 16),
 
-            // Preview Features Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildFeaturePreview(
-                  icon: Icons.create,
-                  label: 'Write Entries',
-                  color: Colors.blue,
+          // Entries List
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredEntries.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _filteredEntries.length,
+                    itemBuilder: (context, index) {
+                      final entry = _filteredEntries[index];
+                      return _buildEntryCard(entry);
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddEditEntryScreen()),
+          );
+          if (result == true) {
+            _loadEntries();
+          }
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.book_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            _searchController.text.isNotEmpty || _selectedMoodFilter != null
+                ? 'No entries match your filters'
+                : 'No journal entries yet',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _searchController.text.isNotEmpty || _selectedMoodFilter != null
+                ? 'Try adjusting your search or filters'
+                : 'Start documenting your journey by adding your first entry',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEntryCard(JournalEntry entry) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Dismissible(
+        key: Key(entry.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          return await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Delete Entry'),
+              content: const Text(
+                'Are you sure you want to delete this entry?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
                 ),
-                _buildFeaturePreview(
-                  icon: Icons.mood,
-                  label: 'Mood Tracking',
-                  color: Colors.purple,
-                ),
-                _buildFeaturePreview(
-                  icon: Icons.search,
-                  label: 'Search Notes',
-                  color: Colors.teal,
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Delete'),
                 ),
               ],
             ),
-
-            const SizedBox(height: 24),
-
-            // Back Button
-            TextButton.icon(
-              onPressed: () {
-                // You can add navigation back to home or previous screen
-              },
-              icon: Icon(Icons.arrow_back, color: AppColors.primary),
-              label: Text(
-                'Go Back to Home',
-                style: TextStyle(color: AppColors.primary, fontSize: 16),
+          );
+        },
+        onDismissed: (direction) {
+          _journalService.deleteEntry(entry.id);
+          _loadEntries();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Entry deleted')));
+        },
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddEditEntryScreen(entry: entry),
               ),
-            ),
-
-            const SizedBox(height: 40), // Add bottom spacing
-          ],
+            );
+            if (result == true) {
+              _loadEntries();
+            }
+          },
+          title: Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: Color(entry.mood.color),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  entry.title.isNotEmpty ? entry.title : 'Untitled Entry',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (entry.content.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  entry.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (entry.triggers.isNotEmpty ||
+                  entry.customTriggers.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    ...entry.triggers
+                        .take(3)
+                        .map(
+                          (trigger) => Chip(
+                            label: Text(
+                              trigger,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                    ...entry.customTriggers
+                        .take(3 - entry.triggers.length)
+                        .map(
+                          (trigger) => Chip(
+                            label: Text(
+                              trigger,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                    if (entry.triggers.length + entry.customTriggers.length > 3)
+                      Chip(
+                        label: Text(
+                          '+${entry.triggers.length + entry.customTriggers.length - 3} more',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    entry.mood.label,
+                    style: TextStyle(
+                      color: Color(entry.mood.color),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    _formatDate(entry.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFeaturePreview({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+  void _showStatistics() async {
+    final moodStats = await _journalService.getMoodStatistics();
+    final triggerStats = await _journalService.getTriggerStatistics();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Journal Statistics'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Mood Distribution',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...moodStats.entries.map((entry) {
+                final percentage = _entries.isNotEmpty
+                    ? (entry.value / _entries.length * 100).round()
+                    : 0;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Color(entry.key.color),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(entry.key.label)),
+                      Text('${entry.value} ($percentage%)'),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
+              const Text(
+                'Top Triggers',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...triggerStats.entries.take(5).map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(entry.key)),
+                      Text('${entry.value}x'),
+                    ],
+                  ),
+                );
+              }),
+            ],
           ),
-          child: Icon(icon, color: color, size: 24),
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final entryDate = DateTime(date.year, date.month, date.day);
+
+    if (entryDate == today) {
+      return 'Today ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (entryDate == yesterday) {
+      return 'Yesterday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }
