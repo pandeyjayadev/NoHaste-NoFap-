@@ -9,11 +9,12 @@ class HomeBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Streak Counter
             StreakCounter(
@@ -23,46 +24,79 @@ class HomeBody extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
 
-            // Additional content
+            // Motivational Card
             Container(
-              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 4.0),
+              padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 1,
+                    color: Colors.grey.withOpacity(0.08),
+                    blurRadius: 12,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 4),
                   ),
                 ],
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.05),
+                  width: 1,
+                ),
               ),
-              child: const Column(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.emoji_events, size: 60, color: AppColors.success),
-                  SizedBox(height: 15),
-                  Text(
-                    'Every day is a victory!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events,
+                      size: 48,
+                      color: AppColors.success,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Keep building your streak one day at a time.',
+
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'Every day is a victory!',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Keep building your streak one day at a time.',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),

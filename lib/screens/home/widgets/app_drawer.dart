@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nohaste/core/constants/app_colors.dart';
 import 'package:nohaste/core/constants/app_strings.dart';
+import 'package:nohaste/screens/about/about_screen.dart';
+import 'package:nohaste/screens/progress/Progress_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -26,15 +28,14 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.timeline,
                   title: AppStrings.menuProgress,
                   onTap: () {
-                    Navigator.pop(context);
-                    // Navigate to Progress tab (index 1)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProgressScreen()),
+                    );
+                    // Navigate to Progress screen
                   },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.emoji_events,
-                  title: AppStrings.menuAchievements,
-                  onTap: () => Navigator.pop(context),
-                ),
+
                 _buildDrawerItem(
                   icon: Icons.book,
                   title: AppStrings.menuJournal,
@@ -43,6 +44,7 @@ class AppDrawer extends StatelessWidget {
                     // Navigate to Journal tab (index 2)
                   },
                 ),
+
                 _buildDrawerItem(
                   icon: Icons.lightbulb,
                   title: AppStrings.menuQuotes,
@@ -71,10 +73,16 @@ class AppDrawer extends StatelessWidget {
                   title: AppStrings.menuSettings,
                   onTap: () => Navigator.pop(context),
                 ),
+
                 _buildDrawerItem(
                   icon: Icons.info,
                   title: AppStrings.menuAbout,
-                  onTap: () => Navigator.pop(context),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AboutScreen(),
+                    ),
+                  ),
                 ),
               ],
             ),

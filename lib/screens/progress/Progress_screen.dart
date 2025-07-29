@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_strings.dart';
 import '../../services/streak_service.dart';
 import 'package:intl/intl.dart';
 
@@ -41,7 +40,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         elevation: 2,
         shadowColor: AppColors.shadowLight,
         title: const Text(
-          'Progress History',
+          'Progress & History',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 22,
@@ -50,7 +49,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         ),
         centerTitle: true,
         automaticallyImplyLeading:
-            false, // Remove back button since we're using bottom nav
+            true, // Remove back button since we're using bottom nav
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
@@ -191,13 +190,264 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ),
           ],
         ),
-        trailing: Icon(
-          _getStreakIcon(streak.days),
-          color: _getStreakColor(streak.days),
-          size: 24,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _getStreakIcon(streak.days),
+              color: _getStreakColor(streak.days),
+              size: 24,
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+              onSelected: (value) => _handleMenuAction(value, streak, index),
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'edit',
+                  child: ListTile(
+                    leading: Icon(Icons.edit, color: AppColors.primary),
+                    title: Text('Edit'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete, color: Colors.red),
+                    title: Text('Delete'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleMenuAction(
+    String action,
+    StreakData streak,
+    int index,
+  ) async {
+    switch (action) {
+      case 'edit':
+        await _showEditDialog(streak, index);
+        break;
+      case 'delete':
+        await _showDeleteConfirmation(streak, index);
+        break;
+    }
+  }
+
+  Future<void> _showEditDialog(StreakData streak, int index) async {
+    DateTime newStartDate = streak.startDate;
+    DateTime newEndDate = streak.endDate;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Edit Streak'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: const Text('Start Date & Time'),
+                      subtitle: Text(
+                        DateFormat('MMM dd, yyyy HH:mm').format(newStartDate),
+                      ),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: newStartDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(newStartDate),
+                          );
+                          if (time != null) {
+                            setState(() {
+                              newStartDate = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                                time.hour,
+                                time.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('End Date & Time'),
+                      subtitle: Text(
+                        DateFormat('MMM dd, yyyy HH:mm').format(newEndDate),
+                      ),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: newEndDate,
+                          firstDate: newStartDate,
+                          lastDate: DateTime.now(),
+                        );
+                        if (date != null) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(newEndDate),
+                          );
+                          if (time != null) {
+                            setState(() {
+                              newEndDate = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                                time.hour,
+                                time.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (newEndDate.isAfter(newStartDate)) {
+                      Navigator.of(context).pop(true);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('End date must be after start date'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == true) {
+      await _updateStreak(index, newStartDate, newEndDate);
+    }
+  }
+
+  Future<void> _updateStreak(
+    int index,
+    DateTime newStartDate,
+    DateTime newEndDate,
+  ) async {
+    try {
+      final difference = newEndDate.difference(newStartDate);
+      final newStreakData = StreakData(
+        startDate: newStartDate,
+        endDate: newEndDate,
+        days: difference.inDays,
+        hours: difference.inHours % 24,
+        minutes: difference.inMinutes % 60,
+      );
+
+      await StreakService.updateStreakAt(index, newStreakData);
+      await _loadStreakHistory();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Streak updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating streak: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(StreakData streak, int index) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Streak'),
+          content: Text(
+            'Are you sure you want to delete this ${streak.days} day streak? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await _deleteStreak(index);
+    }
+  }
+
+  Future<void> _deleteStreak(int index) async {
+    try {
+      await StreakService.deleteStreakAt(index);
+      await _loadStreakHistory();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Streak deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting streak: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildLeadingIcon(StreakData streak, int index) {
@@ -296,11 +546,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return const Color.fromARGB(255, 198, 15, 15);
   }
 
-  IconData _getStreakIcon(int days) {
+  IconData? _getStreakIcon(int days) {
     if (days >= 30) return Icons.diamond;
     if (days >= 21) return Icons.star;
     if (days >= 14) return Icons.local_fire_department;
     if (days >= 7) return Icons.trending_up;
-    return Icons.support;
+    return null; // No icon when days < 7
   }
 }
